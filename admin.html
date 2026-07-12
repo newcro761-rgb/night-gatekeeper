@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>야근왕 관리자</title>
+<style>
+  :root {
+    --bg: #14161c;
+    --card: #1e212b;
+    --border: #2c3140;
+    --text: #e8e9ed;
+    --muted: #8b90a0;
+    --accent: #f5b942;
+    --danger: #e8607a;
+    --ok: #4fd1a5;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+  }
+  #app { max-width: 480px; margin: 0 auto; padding: 20px; }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  h2 { font-size: 15px; color: var(--muted); margin: 28px 0 10px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px;
+    margin-bottom: 14px;
+  }
+  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  input {
+    width: 100%;
+    padding: 11px 13px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #10121a;
+    color: var(--text);
+    font-size: 15px;
+    margin-bottom: 12px;
+  }
+  input:focus { outline: none; border-color: var(--accent); }
+  button {
+    padding: 11px 16px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  button.primary { background: var(--accent); color: #1a1200; width: 100%; }
+  button.danger { background: var(--danger); color: #fff; }
+  button.small { padding: 8px 12px; font-size: 13px; }
+  .row { display: flex; gap: 8px; }
+  .row input { flex: 1; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 4px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-weight: 600; font-size: 12px; }
+  .staff-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .staff-row:last-child { border-bottom: none; }
+  .staff-row .inactive { color: var(--muted); text-decoration: line-through; }
+  #locked { text-align: center; padding-top: 60px; }
+  .hidden { display: none; }
+
+  #toast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    transform: translate(-50%, 20px);
+    background: #2c3140;
+    color: var(--text);
+    padding: 10px 18px;
+    border-radius: 20px;
+    font-size: 14px;
+    opacity: 0;
+    pointer-events: none;
+    transition: all 0.25s ease;
+    max-width: 90%;
+    text-align: center;
+  }
+  #toast.show { opacity: 1; transform: translate(-50%, 0); }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="locked">
+    <h1>🔒 관리자 로그인</h1>
+    <div class="card">
+      <label for="input-password">관리자 비밀번호</label>
+      <input id="input-password" type="password" placeholder="비밀번호 입력">
+      <button class="primary" id="btn-login">로그인</button>
+    </div>
+  </div>
+
+  <div id="admin-panel" class="hidden">
+    <h1>야근왕 관리자</h1>
+
+    <h2>직원 추가</h2>
+    <div class="card">
+      <div class="row">
+        <input id="input-new-name" placeholder="이름">
+        <button class="primary small" id="btn-add-name">추가</button>
+      </div>
+    </div>
+
+    <h2>직원 명단</h2>
+    <div class="card" id="staff-list-card">
+      <div id="staff-list"></div>
+    </div>
+
+    <h2>날짜별 전체 기록</h2>
+    <div class="card">
+      <label for="input-date">날짜</label>
+      <input id="input-date" type="date">
+      <button class="primary small" id="btn-load-records">조회</button>
+      <table id="records-table" style="margin-top:12px;">
+        <thead><tr><th>이름</th><th>퇴근시간</th><th>입력시각</th></tr></thead>
+        <tbody id="records-body"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script src="common.js"></script>
+<script>
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function showAdminPanel() {
+  document.getElementById('locked').classList.add('hidden');
+  document.getElementById('admin-panel').classList.remove('hidden');
+  loadStaffList();
+}
+
+document.getElementById('btn-login').addEventListener('click', () => {
+  const pw = document.getElementById('input-password').value;
+  if (!pw) return;
+  setAdminKey(pw);
+  // 명단 조회를 한 번 시도해서 키가 유효한지 확인
+  adminApiPost('admin_records', { date: '1970-01-01' }).then(resp => {
+    if (resp.result === 'FORBIDDEN') {
+      showToast('비밀번호가 올바르지 않습니다.');
+      sessionStorage.removeItem('admin_key');
+    } else {
+      showAdminPanel();
+    }
+  });
+});
+
+function loadStaffList() {
+  // names 액션은 active 직원만 반환하므로, 비활성 포함 전체 명단은 admin_records 응답에 곁들이지 않고
+  // 간단히 names 결과만 노출한다 (비활성/전체 명단이 필요하면 admin 전용 목록 액션 확장 가능).
+  apiGet('names').then(resp => {
+    const container = document.getElementById('staff-list');
+    const names = resp.names || [];
+    if (names.length === 0) {
+      container.innerHTML = '<div style="color:var(--muted)">등록된 직원이 없습니다.</div>';
+      return;
+    }
+    container.innerHTML = names.map(n => `
+      <div class="staff-row">
+        <span>${escapeHtml(n)}</span>
+        <button class="danger small" onclick="deactivateName('${escapeHtml(n).replace(/'/g, "\\'")}')">비활성화</button>
+      </div>
+    `).join('');
+  });
+}
+
+function deactivateName(name) {
+  if (!confirm(`${name}님을 비활성화할까요?`)) return;
+  adminApiPost('admin_deactivate_name', { name }).then(resp => {
+    if (resp.result === 'OK') {
+      showToast('비활성화되었습니다.');
+      loadStaffList();
+    } else if (resp.result !== 'BUSY') {
+      showToast('처리에 실패했습니다.');
+    }
+  });
+}
+
+document.getElementById('btn-add-name').addEventListener('click', () => {
+  const name = document.getElementById('input-new-name').value.trim();
+  if (!name) return;
+  adminApiPost('admin_add_name', { name }).then(resp => {
+    if (resp.result === 'OK') {
+      showToast('추가되었습니다.');
+      document.getElementById('input-new-name').value = '';
+      loadStaffList();
+    } else if (resp.result === 'ALREADY_EXISTS') {
+      showToast('이미 등록된 이름입니다.');
+    } else if (resp.result !== 'BUSY') {
+      showToast('추가에 실패했습니다.');
+    }
+  });
+});
+
+document.getElementById('btn-load-records').addEventListener('click', () => {
+  const date = document.getElementById('input-date').value;
+  if (!date) return;
+  adminApiPost('admin_records', { date }).then(resp => {
+    if (resp.result === 'FORBIDDEN') {
+      showToast('인증이 만료되었습니다. 새로고침 후 다시 로그인해 주세요.');
+      return;
+    }
+    const body = document.getElementById('records-body');
+    const records = resp.records || [];
+    if (records.length === 0) {
+      body.innerHTML = '<tr><td colspan="3" style="color:var(--muted)">기록이 없습니다.</td></tr>';
+      return;
+    }
+    body.innerHTML = records.map(r => `
+      <tr>
+        <td>${escapeHtml(r.name)}</td>
+        <td>${escapeHtml(r.leave_time)}</td>
+        <td>${escapeHtml(new Date(r.created_at).toLocaleString('ko-KR'))}</td>
+      </tr>
+    `).join('');
+  });
+});
+
+// 이미 세션에 키가 있으면 로그인 화면을 건너뛴다 (탭을 새로 열었을 때 등)
+if (getAdminKey()) {
+  adminApiPost('admin_records', { date: '1970-01-01' }).then(resp => {
+    if (resp.result !== 'FORBIDDEN') showAdminPanel();
+  });
+}
+</script>
+</body>
+</html>
