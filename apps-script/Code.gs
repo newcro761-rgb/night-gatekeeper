@@ -1,7 +1,6 @@
 // ===== 상수 =====
 const SHEET_NAMES = { STAFF: '직원명단', RECORDS: '기록', GATEKEEPER: '문지기확정' };
 const TIMEZONE = 'Asia/Seoul';
-const CONFIRM_HOUR = 16;
 
 // ===== 라우팅 =====
 function doGet(e) {
@@ -59,7 +58,7 @@ function boolActive_(v) {
   return v === true || String(v).toUpperCase() === 'TRUE';
 }
 
-// 시트 쓰기 경로를 감싸는 동시성 제어 — 16:00 직후 동시 today/submit로 인한 중복 행 삽입을 방지
+// 시트 쓰기 경로를 감싸는 동시성 제어 — 동시 submit/마감 기록으로 인한 중복 행 삽입을 방지
 function withLock_(fn) {
   const lock = LockService.getScriptLock();
   if (!lock.tryLock(10000)) {
@@ -128,15 +127,11 @@ function submit_(data) {
     const todayStr = Utilities.formatDate(new Date(), TIMEZONE, 'yyyy-MM-dd');
     upsertRecord_(recordsSheet, todayStr, name, leaveTime);
 
-    const hour = Number(Utilities.formatDate(new Date(), TIMEZONE, 'H'));
-    if (hour >= CONFIRM_HOUR) {
-      runConfirmation_(todayStr, '제출 후 재확정');
-    }
     return jsonOutput_({ result: 'OK', name: name, leave_time: leaveTime });
   });
 }
 
-// 특정 날짜의 전체 레코드를 배열로 반환 — runConfirmation_과 adminRecords_가 공유
+// 특정 날짜의 전체 레코드를 배열로 반환 — today_/finalizePastDates_/adminRecords_가 공유
 function getRecordsForDate_(recordsSheet, dateStr) {
   const values = recordsSheet.getDataRange().getValues();
   const out = [];
@@ -153,19 +148,23 @@ function getRecordsForDate_(recordsSheet, dateStr) {
 }
 
 function history_(params) {
+  finalizePastDates_();
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = getSheet_(ss, SHEET_NAMES.GATEKEEPER);
   const values = sheet.getDataRange().getValues();
+  const todayStr = Utilities.formatDate(new Date(), TIMEZONE, 'yyyy-MM-dd');
   const list = [];
   for (let i = 1; i < values.length; i++) {
-    list.push({ date: normalizeDateStr_(values[i][0]), gatekeeper: values[i][1] });
+    const dateStr = normalizeDateStr_(values[i][0]);
+    if (dateStr >= todayStr) continue; // 오늘/미래 날짜는 역대 기록에 포함하지 않음 (마감된 날짜만)
+    list.push({ date: dateStr, gatekeeper: values[i][1] });
   }
   list.sort(function (a, b) { return a.date < b.date ? 1 : (a.date > b.date ? -1 : 0); });
   const limited = (params && params.more) ? list : list.slice(0, 30);
   return jsonOutput_({ history: limited });
 }
 
-// ===== 확정 로직 — 정기 트리거와 즉시 재확정이 공유하는 핵심 =====
+// ===== 문지기 계산 — "현재 1등"을 항상 실시간으로 계산한다 (고정 확정 시각 없음) =====
 
 // 순수 함수: 최댓값 leave_time, 동점시 created_at 빠른(먼저 입력한) 사람 우선
 function pickGatekeeper_(records) {
@@ -190,74 +189,39 @@ function findGatekeeperRowIndex_(gatekeeperSheet, dateStr) {
   return -1;
 }
 
-// 승자가 기존과 동일하면 아무 것도 하지 않음(revision 불필요 증가 방지), 바뀌면 revision+1
-function upsertGatekeeper_(ss, dateStr, winnerName, note) {
-  const sheet = getSheet_(ss, SHEET_NAMES.GATEKEEPER);
-  const rowIndex = findGatekeeperRowIndex_(sheet, dateStr);
-  const nowIso = new Date().toISOString();
-  if (rowIndex === -1) {
-    sheet.appendRow([dateStr, winnerName, nowIso, 0, note || '']);
-    return { changed: true, gatekeeper: winnerName };
-  }
-  const existing = sheet.getRange(rowIndex, 1, 1, 5).getValues()[0];
-  if (existing[1] === winnerName) {
-    return { changed: false, gatekeeper: winnerName };
-  }
-  const newRevision = Number(existing[3] || 0) + 1;
-  sheet.getRange(rowIndex, 1, 1, 5).setValues([[dateStr, winnerName, nowIso, newRevision, note || '']]);
-  return { changed: true, gatekeeper: winnerName };
-}
-
-// 진입점 — dailyConfirmTrigger()와 submit_()/today_() 양쪽이 이 함수 하나만 호출
-function runConfirmation_(dateStr, note) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const records = getRecordsForDate_(getSheet_(ss, SHEET_NAMES.RECORDS), dateStr);
-  if (records.length === 0) return { status: 'no_records' };
-  const winner = pickGatekeeper_(records);
-  upsertGatekeeper_(ss, dateStr, winner.name, note);
-  return { status: 'confirmed', gatekeeper: winner.name };
-}
-
-// 정기 트리거 핸들러 — 이 함수만 트리거에 등록한다.
-// 주의: atHour(16) 트리거는 16:00~17:00 사이 임의 시점에 실행되는 것이 Apps Script의 정상 동작이다(버그 아님).
-// 실제 확정 시점 보장은 today_()의 온디맨드 폴백이 담당한다.
-function dailyConfirmTrigger() {
+// 오늘보다 이전 날짜인데 아직 문지기확정 시트에 없는 날짜를 찾아 1회만 기록한다(멱등).
+// 날짜가 지나면 그 날짜의 기록은 더 이상 바뀌지 않으므로(자정 이후 입력 없음), 재확정 로직이 필요 없다.
+function finalizePastDates_() {
   withLock_(function () {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
     const todayStr = Utilities.formatDate(new Date(), TIMEZONE, 'yyyy-MM-dd');
-    runConfirmation_(todayStr, '정기 확정(16:00)');
+    const recordsSheet = getSheet_(ss, SHEET_NAMES.RECORDS);
+    const gatekeeperSheet = getSheet_(ss, SHEET_NAMES.GATEKEEPER);
+    const recordValues = recordsSheet.getDataRange().getValues();
+    const pastDates = {};
+    for (let i = 1; i < recordValues.length; i++) {
+      const d = normalizeDateStr_(recordValues[i][0]);
+      if (d < todayStr) pastDates[d] = true;
+    }
+    Object.keys(pastDates).forEach(function (dateStr) {
+      if (findGatekeeperRowIndex_(gatekeeperSheet, dateStr) !== -1) return;
+      const records = getRecordsForDate_(recordsSheet, dateStr);
+      if (records.length === 0) return;
+      const winner = pickGatekeeper_(records);
+      gatekeeperSheet.appendRow([dateStr, winner.name, new Date().toISOString(), 0, '마감 시 자동 기록']);
+    });
     return jsonOutput_({ result: 'OK' });
   });
 }
 
-// 트리거 등록 — Apps Script 편집기에서 이 함수를 선택해 "실행" 버튼으로 1회만 수동 실행
-function setupDailyTrigger() {
-  ScriptApp.getProjectTriggers().forEach(function (t) {
-    if (t.getHandlerFunction() === 'dailyConfirmTrigger') ScriptApp.deleteTrigger(t);
-  });
-  ScriptApp.newTrigger('dailyConfirmTrigger')
-    .timeBased().atHour(CONFIRM_HOUR).everyDays(1).inTimezone(TIMEZONE).create();
-}
-
-// 16:00 판정 + 트리거 지연 흡수(온디맨드 폴백)
+// 오늘 지금까지의 1등을 실시간으로 계산해 반환 (쓰기 없음, 락 불필요)
 function today_() {
-  return withLock_(function () {
-    const now = new Date();
-    const todayStr = Utilities.formatDate(now, TIMEZONE, 'yyyy-MM-dd');
-    const hour = Number(Utilities.formatDate(now, TIMEZONE, 'H'));
-
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const gatekeeperSheet = getSheet_(ss, SHEET_NAMES.GATEKEEPER);
-    const confirmedRow = findGatekeeperRowIndex_(gatekeeperSheet, todayStr);
-    if (confirmedRow !== -1) {
-      const row = gatekeeperSheet.getRange(confirmedRow, 1, 1, 5).getValues()[0];
-      return jsonOutput_({ status: 'confirmed', gatekeeper: row[1] });
-    }
-    if (hour < CONFIRM_HOUR) {
-      return jsonOutput_({ status: 'pending', confirm_at: '16:00' });
-    }
-    const result = runConfirmation_(todayStr, '조회 시점 온디맨드 확정');
-    return jsonOutput_(result);
-  });
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const todayStr = Utilities.formatDate(new Date(), TIMEZONE, 'yyyy-MM-dd');
+  const records = getRecordsForDate_(getSheet_(ss, SHEET_NAMES.RECORDS), todayStr);
+  if (records.length === 0) return jsonOutput_({ status: 'no_records' });
+  const winner = pickGatekeeper_(records);
+  return jsonOutput_({ status: 'live', gatekeeper: winner.name });
 }
 
 // ===== 관리자 API =====

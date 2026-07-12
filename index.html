@@ -205,18 +205,23 @@ function loadNames() {
 
 function renderGatekeeperCard(resp) {
   const card = document.getElementById('gatekeeper-card');
-  if (resp.status === 'confirmed') {
-    card.innerHTML = `<div class="crown">👑</div><div class="name">${escapeHtml(resp.gatekeeper)}</div>`;
-  } else if (resp.status === 'no_records') {
-    card.innerHTML = `<div class="no-records">오늘은 등록된 기록이 없습니다.</div>`;
+  if (resp.status === 'live') {
+    card.innerHTML = `<div class="crown">👑</div><div class="name">${escapeHtml(resp.gatekeeper)}</div><div class="pending">지금까지 가장 늦게 퇴근하는 사람 (실시간)</div>`;
   } else {
-    card.innerHTML = `<div class="pending">오늘의 문지기는 ${escapeHtml(resp.confirm_at || '16:00')}에 확정됩니다</div>`;
+    card.innerHTML = `<div class="no-records">오늘은 아직 등록된 기록이 없습니다.</div>`;
   }
 }
 
 function loadToday() {
   apiGet('today').then(renderGatekeeperCard);
 }
+
+// 실시간으로 보이도록 20초마다 자동 갱신 (오늘 탭이 보일 때만)
+setInterval(() => {
+  if (document.getElementById('tab-today').classList.contains('active')) {
+    loadToday();
+  }
+}, 20000);
 
 function loadHistory() {
   apiGet('history').then(resp => {
