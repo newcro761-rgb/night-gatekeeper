@@ -1,5 +1,5 @@
 // Apps Script 웹앱 배포(exec) URL — apps-script/Code.gs 배포 후 여기에 채워 넣는다.
-const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/REPLACE_WITH_DEPLOYMENT_ID/exec';
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyCJRTOJgyi5GbywG0Vr-VK9o-vSbqNInCvwozyuJOc5upvTY410ChyBzmefrhKF0ORmw/exec';
 
 function handleApiResponse_(resp) {
   if (resp && resp.result === 'BUSY') {
