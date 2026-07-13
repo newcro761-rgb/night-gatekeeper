@@ -2,85 +2,140 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>야근왕 관리자</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
   :root {
-    --bg: #14161c;
-    --card: #1e212b;
-    --border: #2c3140;
-    --text: #e8e9ed;
-    --muted: #8b90a0;
-    --accent: #f5b942;
-    --danger: #e8607a;
-    --ok: #4fd1a5;
+    --bg-0: #05191B;
+    --surface: rgba(15, 53, 55, 0.55);
+    --surface-2: rgba(11, 42, 44, 0.85);
+    --line: rgba(151, 252, 228, 0.14);
+    --line-strong: rgba(151, 252, 228, 0.28);
+    --mint: #97FCE4;
+    --mint-dim: #50D2C1;
+    --mint-soft: rgba(151, 252, 228, 0.10);
+    --text: #E8FFFA;
+    --dim: #7FA8A4;
+    --muted: #4F7773;
+    --gold: #FFD479;
+    --danger: #F87171;
+    --danger-soft: rgba(248, 113, 113, 0.12);
+    --shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+    --mono: ui-monospace, SFMono-Regular, "Cascadia Mono", Consolas, monospace;
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
   body {
-    margin: 0;
-    background: var(--bg);
+    background:
+      radial-gradient(900px 500px at 50% -10%, rgba(151, 252, 228, 0.06), transparent 60%),
+      var(--bg-0);
     color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+    font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+    min-height: 100vh;
   }
-  #app { max-width: 480px; margin: 0 auto; padding: 20px; }
-  h1 { font-size: 20px; margin: 0 0 4px; }
-  h2 { font-size: 15px; color: var(--muted); margin: 28px 0 10px; }
+  #app { max-width: 460px; margin: 0 auto; padding: 24px 20px 60px; }
+
+  .wordmark { font-size: 20px; font-weight: 800; letter-spacing: -0.5px; margin-bottom: 4px; }
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--dim);
+    letter-spacing: 0.3px;
+    margin: 26px 2px 10px;
+  }
+  .section-title:first-of-type { margin-top: 22px; }
+
   .card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     padding: 18px;
-    margin-bottom: 14px;
   }
-  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+
+  label { display: block; font-size: 12px; color: var(--dim); margin-bottom: 6px; }
+
   input {
     width: 100%;
-    padding: 11px 13px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    background: #10121a;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: var(--surface-2);
     color: var(--text);
     font-size: 15px;
-    margin-bottom: 12px;
+    font-family: inherit;
   }
-  input:focus { outline: none; border-color: var(--accent); }
+  input:focus {
+    outline: none;
+    border-color: var(--mint-dim);
+    box-shadow: 0 0 0 3px var(--mint-soft);
+  }
+  input[type="date"] { font-family: var(--mono); }
+  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.8); }
+
   button {
-    padding: 11px 16px;
     border: none;
-    border-radius: 10px;
+    border-radius: 12px;
     font-size: 14px;
     font-weight: 700;
+    font-family: inherit;
     cursor: pointer;
+    transition: opacity 0.15s, box-shadow 0.15s;
   }
-  button.primary { background: var(--accent); color: #1a1200; width: 100%; }
-  button.danger { background: var(--danger); color: #fff; }
-  button.small { padding: 8px 12px; font-size: 13px; }
-  .row { display: flex; gap: 8px; }
-  .row input { flex: 1; }
-  table { width: 100%; border-collapse: collapse; font-size: 14px; }
-  th, td { text-align: left; padding: 8px 4px; border-bottom: 1px solid var(--border); }
-  th { color: var(--muted); font-weight: 600; font-size: 12px; }
-  .staff-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  button:active { opacity: 0.85; }
+  .btn-block { width: 100%; padding: 14px; }
+  .btn-mint { background: var(--mint); color: #03110F; }
+  .btn-mint:hover { box-shadow: 0 0 16px rgba(151, 252, 228, 0.25); }
+  .btn-danger { background: var(--danger-soft); color: var(--danger); padding: 8px 14px; font-size: 13px; }
+
+  /* 입력칸 + 버튼 가로 배치: 버튼은 내용만큼만, 입력칸이 남는 공간을 전부 가져간다 */
+  .inline-row { display: flex; gap: 8px; align-items: stretch; }
+  .inline-row input { flex: 1 1 auto; min-width: 0; }
+  .inline-row button { flex: 0 0 auto; width: auto; padding: 0 18px; white-space: nowrap; }
+
+  .staff-list { list-style: none; }
+  .staff-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 2px;
+    border-bottom: 1px solid var(--line);
+  }
   .staff-row:last-child { border-bottom: none; }
-  .staff-row .inactive { color: var(--muted); text-decoration: line-through; }
-  #locked { text-align: center; padding-top: 60px; }
+  .staff-row .name { font-weight: 600; font-size: 15px; }
+  .empty-note { color: var(--muted); font-size: 14px; text-align: center; padding: 8px 0; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 14px; }
+  th, td { text-align: left; padding: 10px 6px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; font-size: 11px; letter-spacing: 0.3px; }
+  td.time { font-family: var(--mono); color: var(--mint); }
+
+  /* 로그인 화면 */
+  #locked { display: flex; flex-direction: column; align-items: center; padding-top: 80px; }
+  #locked .lock-icon { font-size: 34px; margin-bottom: 10px; }
+  #locked .card { width: 100%; }
+  #locked .btn-mint { margin-top: 12px; }
   .hidden { display: none; }
 
   #toast {
     position: fixed;
     left: 50%;
     bottom: 24px;
-    transform: translate(-50%, 20px);
-    background: #2c3140;
+    transform: translate(-50%, 16px);
+    background: var(--surface-2);
+    border: 1px solid var(--line-strong);
     color: var(--text);
-    padding: 10px 18px;
-    border-radius: 20px;
+    padding: 11px 20px;
+    border-radius: 999px;
     font-size: 14px;
     opacity: 0;
     pointer-events: none;
     transition: all 0.25s ease;
     max-width: 90%;
     text-align: center;
+    box-shadow: var(--shadow);
   }
   #toast.show { opacity: 1; transform: translate(-50%, 0); }
 </style>
@@ -88,36 +143,38 @@
 <body>
 <div id="app">
   <div id="locked">
-    <h1>🔒 관리자 로그인</h1>
+    <div class="lock-icon">🔒</div>
+    <div class="wordmark" style="text-align:center;margin-bottom:16px;">야근왕 관리자</div>
     <div class="card">
       <label for="input-password">관리자 비밀번호</label>
       <input id="input-password" type="password" placeholder="비밀번호 입력">
-      <button class="primary" id="btn-login">로그인</button>
+      <button class="btn-mint btn-block" id="btn-login">로그인</button>
     </div>
   </div>
 
   <div id="admin-panel" class="hidden">
-    <h1>야근왕 관리자</h1>
+    <div class="wordmark">🌙 야근왕 관리자</div>
 
-    <h2>직원 추가</h2>
+    <div class="section-title">직원 추가</div>
     <div class="card">
-      <div class="row">
-        <input id="input-new-name" placeholder="이름">
-        <button class="primary small" id="btn-add-name">추가</button>
+      <div class="inline-row">
+        <input id="input-new-name" placeholder="이름 입력">
+        <button class="btn-mint" id="btn-add-name">추가</button>
       </div>
     </div>
 
-    <h2>직원 명단</h2>
-    <div class="card" id="staff-list-card">
-      <div id="staff-list"></div>
+    <div class="section-title">직원 명단</div>
+    <div class="card">
+      <ul class="staff-list" id="staff-list"></ul>
     </div>
 
-    <h2>날짜별 전체 기록</h2>
+    <div class="section-title">날짜별 전체 기록</div>
     <div class="card">
-      <label for="input-date">날짜</label>
-      <input id="input-date" type="date">
-      <button class="primary small" id="btn-load-records">조회</button>
-      <table id="records-table" style="margin-top:12px;">
+      <div class="inline-row">
+        <input id="input-date" type="date">
+        <button class="btn-mint" id="btn-load-records">조회</button>
+      </div>
+      <table id="records-table">
         <thead><tr><th>이름</th><th>퇴근시간</th><th>입력시각</th></tr></thead>
         <tbody id="records-body"></tbody>
       </table>
@@ -143,7 +200,6 @@ document.getElementById('btn-login').addEventListener('click', () => {
   const pw = document.getElementById('input-password').value;
   if (!pw) return;
   setAdminKey(pw);
-  // 명단 조회를 한 번 시도해서 키가 유효한지 확인
   adminApiPost('admin_records', { date: '1970-01-01' }).then(resp => {
     if (resp.result === 'FORBIDDEN') {
       showToast('비밀번호가 올바르지 않습니다.');
@@ -155,20 +211,18 @@ document.getElementById('btn-login').addEventListener('click', () => {
 });
 
 function loadStaffList() {
-  // names 액션은 active 직원만 반환하므로, 비활성 포함 전체 명단은 admin_records 응답에 곁들이지 않고
-  // 간단히 names 결과만 노출한다 (비활성/전체 명단이 필요하면 admin 전용 목록 액션 확장 가능).
   apiGet('names').then(resp => {
     const container = document.getElementById('staff-list');
     const names = resp.names || [];
     if (names.length === 0) {
-      container.innerHTML = '<div style="color:var(--muted)">등록된 직원이 없습니다.</div>';
+      container.innerHTML = '<div class="empty-note">등록된 직원이 없습니다.</div>';
       return;
     }
     container.innerHTML = names.map(n => `
-      <div class="staff-row">
-        <span>${escapeHtml(n)}</span>
-        <button class="danger small" onclick="deactivateName('${escapeHtml(n).replace(/'/g, "\\'")}')">비활성화</button>
-      </div>
+      <li class="staff-row">
+        <span class="name">${escapeHtml(n)}</span>
+        <button class="btn-danger" onclick="deactivateName('${escapeHtml(n).replace(/'/g, "\\'")}')">비활성화</button>
+      </li>
     `).join('');
   });
 }
@@ -212,20 +266,19 @@ document.getElementById('btn-load-records').addEventListener('click', () => {
     const body = document.getElementById('records-body');
     const records = resp.records || [];
     if (records.length === 0) {
-      body.innerHTML = '<tr><td colspan="3" style="color:var(--muted)">기록이 없습니다.</td></tr>';
+      body.innerHTML = '<tr><td colspan="3" class="empty-note">기록이 없습니다.</td></tr>';
       return;
     }
     body.innerHTML = records.map(r => `
       <tr>
         <td>${escapeHtml(r.name)}</td>
-        <td>${escapeHtml(r.leave_time)}</td>
+        <td class="time">${escapeHtml(r.leave_time)}</td>
         <td>${escapeHtml(new Date(r.created_at).toLocaleString('ko-KR'))}</td>
       </tr>
     `).join('');
   });
 });
 
-// 이미 세션에 키가 있으면 로그인 화면을 건너뛴다 (탭을 새로 열었을 때 등)
 if (getAdminKey()) {
   adminApiPost('admin_records', { date: '1970-01-01' }).then(resp => {
     if (resp.result !== 'FORBIDDEN') showAdminPanel();
