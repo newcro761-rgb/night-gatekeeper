@@ -119,15 +119,30 @@
     .live-dot { animation: none; }
   }
   .hero .crown { position: relative; font-size: 38px; line-height: 1; }
+  .tie-badge {
+    position: relative;
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--gold);
+    background: rgba(255, 212, 121, 0.12);
+    border: 1px solid rgba(255, 212, 121, 0.3);
+    border-radius: 999px;
+    padding: 3px 10px;
+    margin-top: 6px;
+    letter-spacing: 0.3px;
+  }
   .hero .name {
     position: relative;
     font-size: 34px;
     font-weight: 800;
     letter-spacing: -1px;
+    line-height: 1.25;
     color: var(--gold);
     text-shadow: 0 0 24px rgba(255, 212, 121, 0.35);
     margin: 8px 0 4px;
   }
+  .hero .name.multi { font-size: 24px; }
   .hero .time-chip {
     position: relative;
     display: inline-block;
@@ -428,9 +443,13 @@ function renderGatekeeperCard(resp) {
       <span id="updated-ago">${updatedAgoText()}</span>
     </div>`;
   if (resp.status === 'live') {
+    const names = resp.gatekeepers || [];
+    const isTie = names.length > 1;
+    const nameHtml = names.map(escapeHtml).join('<br>');
     card.innerHTML = statusRow + `
       <div class="crown">👑</div>
-      <div class="name">${escapeHtml(resp.gatekeeper)}</div>
+      ${isTie ? `<div class="tie-badge">공동 ${names.length}명</div>` : ''}
+      <div class="name${isTie ? ' multi' : ''}">${nameHtml}</div>
       <div class="time-chip">${escapeHtml(resp.leave_time)}</div>
       <div class="caption">지금 기준, 오늘 가장 늦게 퇴근하는 사람</div>
       <div class="count">오늘 ${Number(resp.count) || 0}명 등록</div>`;

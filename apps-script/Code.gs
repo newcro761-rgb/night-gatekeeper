@@ -181,19 +181,12 @@ function history_(params) {
 
 // ===== 문지기 계산 — "현재 1등"을 항상 실시간으로 계산한다 (고정 확정 시각 없음) =====
 
-// 순수 함수: 최댓값 leave_time, 동점시 created_at 빠른(먼저 입력한) 사람 우선
-function pickGatekeeper_(records) {
-  let best = records[0];
-  for (let i = 1; i < records.length; i++) {
-    const r = records[i];
-    if (r.leave_time > best.leave_time) {
-      best = r;
-    } else if (r.leave_time === best.leave_time
-               && parseTimestamp_(r.created_at) < parseTimestamp_(best.created_at)) {
-      best = r;
-    }
-  }
-  return best;
+// 순수 함수: 최댓값 leave_time을 가진 사람 전원 반환(동점이면 전원 공동 1위), created_at 빠른 순 정렬
+function pickGatekeepers_(records) {
+  const maxTime = records.reduce(function (max, r) { return r.leave_time > max ? r.leave_time : max; }, records[0].leave_time);
+  const winners = records.filter(function (r) { return r.leave_time === maxTime; });
+  winners.sort(function (a, b) { return parseTimestamp_(a.created_at) - parseTimestamp_(b.created_at); });
+  return winners;
 }
 
 function findGatekeeperRowIndex_(gatekeeperSheet, dateStr) {
@@ -222,15 +215,16 @@ function finalizePastDates_() {
       if (findGatekeeperRowIndex_(gatekeeperSheet, dateStr) !== -1) return;
       const candidates = getRecordsForDate_(recordsSheet, dateStr).filter(function (r) { return isTimeValue_(r.leave_time); });
       if (candidates.length === 0) return; // 전원 출장/휴가였던 날은 문지기 없음
-      const winner = pickGatekeeper_(candidates);
-      gatekeeperSheet.appendRow([dateStr, winner.name, new Date().toISOString(), 0, '마감 시 자동 기록']);
+      const winners = pickGatekeepers_(candidates);
+      const label = winners.map(function (w) { return w.name; }).join(', ');
+      gatekeeperSheet.appendRow([dateStr, label, new Date().toISOString(), 0, '마감 시 자동 기록']);
     });
     return jsonOutput_({ result: 'OK' });
   });
 }
 
 // 오늘 지금까지의 1등을 실시간으로 계산해 반환 (쓰기 없음, 락 불필요)
-// leave_time(1등의 시간)과 count(오늘 등록 인원)를 함께 공개하는 것은 제품 결정 사항
+// 동점이면 전원을 gatekeepers 배열로 반환한다 (임의로 한 명만 고르지 않음)
 function today_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const todayStr = Utilities.formatDate(new Date(), TIMEZONE, 'yyyy-MM-dd');
@@ -240,8 +234,13 @@ function today_() {
   if (candidates.length === 0) {
     return jsonOutput_({ status: 'all_away', count: records.length });
   }
-  const winner = pickGatekeeper_(candidates);
-  return jsonOutput_({ status: 'live', gatekeeper: winner.name, leave_time: winner.leave_time, count: records.length });
+  const winners = pickGatekeepers_(candidates);
+  return jsonOutput_({
+    status: 'live',
+    gatekeepers: winners.map(function (w) { return w.name; }),
+    leave_time: winners[0].leave_time,
+    count: records.length
+  });
 }
 
 // ===== 관리자 API =====
