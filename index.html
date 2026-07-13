@@ -2,142 +2,311 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>야근왕 🌙</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 <style>
   :root {
-    --bg: #14161c;
-    --card: #1e212b;
-    --border: #2c3140;
-    --text: #e8e9ed;
-    --muted: #8b90a0;
-    --accent: #f5b942;
-    --danger: #e8607a;
-    --ok: #4fd1a5;
+    --bg-0: #05191B;
+    --bg-1: #0B2A2C;
+    --surface: rgba(15, 53, 55, 0.55);
+    --surface-2: rgba(11, 42, 44, 0.85);
+    --line: rgba(151, 252, 228, 0.14);
+    --line-strong: rgba(151, 252, 228, 0.28);
+    --mint: #97FCE4;
+    --mint-dim: #50D2C1;
+    --mint-soft: rgba(151, 252, 228, 0.10);
+    --text: #E8FFFA;
+    --dim: #7FA8A4;
+    --muted: #4F7773;
+    --gold: #FFD479;
+    --gold-soft: rgba(255, 212, 121, 0.12);
+    --danger: #F87171;
+    --shadow: 0 4px 30px rgba(0, 0, 0, 0.4);
+    --mono: ui-monospace, SFMono-Regular, "Cascadia Mono", Consolas, monospace;
   }
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { -webkit-text-size-adjust: 100%; }
   body {
-    margin: 0;
-    background: var(--bg);
+    background:
+      radial-gradient(900px 500px at 50% -10%, rgba(151, 252, 228, 0.06), transparent 60%),
+      var(--bg-0);
     color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", sans-serif;
+    font-family: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+    min-height: 100vh;
   }
   #app {
-    max-width: 480px;
+    max-width: 460px;
     margin: 0 auto;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    padding-bottom: 72px;
+    padding: 24px 20px 96px;
   }
-  header {
-    padding: 24px 20px 12px;
-    text-align: center;
-  }
-  header h1 {
-    font-size: 22px;
-    margin: 0;
-  }
-  header p {
-    color: var(--muted);
-    font-size: 13px;
-    margin: 4px 0 0;
-  }
-  .tab-content { display: none; padding: 12px 20px 20px; }
-  .tab-content.active { display: block; }
 
+  /* ── 헤더 ─────────────────────────────── */
+  header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+  .wordmark {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.5px;
+  }
+  .wordmark .moon { margin-right: 6px; }
+  #today-date {
+    font-family: var(--mono);
+    font-size: 13px;
+    color: var(--dim);
+  }
+
+  /* ── 카드 공통 ────────────────────────── */
   .card {
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 14px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     padding: 20px;
     margin-bottom: 16px;
   }
-  .gatekeeper-card { text-align: center; }
-  .gatekeeper-card .crown { font-size: 40px; }
-  .gatekeeper-card .name { font-size: 28px; font-weight: 700; margin: 8px 0; }
-  .gatekeeper-card .pending { color: var(--muted); font-size: 15px; }
-  .gatekeeper-card .no-records { color: var(--muted); font-size: 15px; }
 
-  label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
-  input {
+  /* ── 문지기 히어로 카드 (시그니처) ─────── */
+  .hero {
+    position: relative;
+    overflow: hidden;
+    text-align: center;
+    padding: 22px 20px 20px;
+  }
+  .hero::before {
+    content: "";
+    position: absolute;
+    inset: -40% -20% auto;
+    height: 130%;
+    background: radial-gradient(closest-side, var(--gold-soft), transparent 70%);
+    pointer-events: none;
+  }
+  .hero-status {
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    color: var(--dim);
+    margin-bottom: 16px;
+  }
+  .live-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--mint);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+  }
+  .live-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--mint);
+    box-shadow: 0 0 8px var(--mint);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.35; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .live-dot { animation: none; }
+  }
+  .hero .crown { position: relative; font-size: 38px; line-height: 1; }
+  .hero .name {
+    position: relative;
+    font-size: 34px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    color: var(--gold);
+    text-shadow: 0 0 24px rgba(255, 212, 121, 0.35);
+    margin: 8px 0 4px;
+  }
+  .hero .time-chip {
+    position: relative;
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text);
+    background: var(--gold-soft);
+    border: 1px solid rgba(255, 212, 121, 0.3);
+    border-radius: 999px;
+    padding: 4px 14px;
+    margin-bottom: 12px;
+  }
+  .hero .caption { position: relative; font-size: 13px; color: var(--dim); }
+  .hero .count { position: relative; font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .hero .empty {
+    position: relative;
+    color: var(--dim);
+    font-size: 15px;
+    line-height: 1.6;
+    padding: 12px 0;
+  }
+  .hero .empty .big { font-size: 32px; display: block; margin-bottom: 8px; }
+
+  /* ── 입력 폼 ─────────────────────────── */
+  .field-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--dim);
+    margin: 0 0 8px 2px;
+  }
+  .field-label:not(:first-child) { margin-top: 18px; }
+
+  select, input[type="time"] {
     width: 100%;
-    padding: 12px 14px;
-    border-radius: 10px;
-    border: 1px solid var(--border);
-    background: #10121a;
+    padding: 13px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: var(--surface-2);
     color: var(--text);
     font-size: 16px;
-    margin-bottom: 14px;
+    font-family: inherit;
+    appearance: none;
+    -webkit-appearance: none;
   }
-  input:focus { outline: none; border-color: var(--accent); }
-  button.primary {
-    width: 100%;
-    padding: 14px;
-    border: none;
-    border-radius: 10px;
-    background: var(--accent);
-    color: #1a1200;
-    font-size: 16px;
-    font-weight: 700;
+  select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2397FCE4' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 40px;
+  }
+  select:focus, input[type="time"]:focus {
+    outline: none;
+    border-color: var(--mint-dim);
+    box-shadow: 0 0 0 3px var(--mint-soft);
+  }
+  select:invalid { color: var(--muted); }
+  input[type="time"] { font-family: var(--mono); }
+  input[type="time"]::-webkit-calendar-picker-indicator { filter: invert(0.8); }
+
+  .chips { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .chips + .chips { margin-top: 8px; grid-template-columns: repeat(2, 1fr); }
+  .chip {
+    padding: 12px 0;
+    border-radius: 12px;
+    border: 1px solid var(--line);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
+    font-family: var(--mono);
     cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
   }
-  button.primary:active { opacity: 0.85; }
-  .hint {
+  .chip.status { font-family: inherit; }
+  .chip.selected {
+    border-color: var(--mint-dim);
+    background: var(--mint-soft);
+    color: var(--mint);
+    box-shadow: 0 0 12px rgba(151, 252, 228, 0.15);
+  }
+  .manual-row { margin-top: 8px; }
+
+  .submit-btn {
+    width: 100%;
+    margin-top: 18px;
+    padding: 15px;
+    border: none;
+    border-radius: 12px;
+    background: var(--mint);
+    color: #03110F;
+    font-size: 16px;
+    font-weight: 800;
+    font-family: inherit;
+    letter-spacing: -0.3px;
+    cursor: pointer;
+    transition: opacity 0.15s, box-shadow 0.15s;
+  }
+  .submit-btn:hover { box-shadow: 0 0 20px rgba(151, 252, 228, 0.25); }
+  .submit-btn:active { opacity: 0.85; }
+  .my-record {
+    display: none;
+    margin-top: 12px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--dim);
+  }
+  .my-record .val { font-family: var(--mono); color: var(--mint); font-weight: 600; }
+  .form-hint {
+    margin-top: 10px;
+    text-align: center;
     font-size: 12px;
     color: var(--muted);
-    margin-top: -6px;
-    margin-bottom: 14px;
   }
 
-  .history-list { list-style: none; margin: 0; padding: 0; }
+  /* ── 역대 문지기 ──────────────────────── */
+  .history-list { list-style: none; }
   .history-list li {
     display: flex;
     justify-content: space-between;
-    padding: 12px 4px;
-    border-bottom: 1px solid var(--border);
+    align-items: center;
+    padding: 13px 4px;
+    border-bottom: 1px solid var(--line);
   }
   .history-list li:last-child { border-bottom: none; }
-  .history-list .date { color: var(--muted); font-size: 14px; }
-  .history-list .name { font-weight: 600; }
-  .empty { color: var(--muted); text-align: center; padding: 24px 0; font-size: 14px; }
+  .history-list .date { font-family: var(--mono); font-size: 13px; color: var(--dim); }
+  .history-list .date .dow { color: var(--muted); }
+  .history-list .name { font-weight: 700; font-size: 15px; }
+  .history-list .name::before { content: "👑 "; font-size: 12px; }
+  .empty-list { color: var(--muted); text-align: center; padding: 28px 0; font-size: 14px; }
 
+  /* ── 탭바 ─────────────────────────────── */
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
   .tab-bar {
     position: fixed;
     bottom: 0; left: 0; right: 0;
-    max-width: 480px;
+    max-width: 460px;
     margin: 0 auto;
     display: flex;
-    background: var(--card);
-    border-top: 1px solid var(--border);
+    background: var(--surface-2);
+    border-top: 1px solid var(--line);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    padding-bottom: env(safe-area-inset-bottom);
   }
   .tab-btn {
     flex: 1;
-    padding: 14px 0;
+    padding: 15px 0;
     text-align: center;
     background: none;
     border: none;
     color: var(--muted);
     font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
     cursor: pointer;
   }
-  .tab-btn.active { color: var(--accent); font-weight: 700; }
+  .tab-btn.active { color: var(--mint); }
 
+  /* ── 토스트 ───────────────────────────── */
   #toast {
     position: fixed;
     left: 50%;
-    bottom: 90px;
-    transform: translate(-50%, 20px);
-    background: #2c3140;
+    bottom: 88px;
+    transform: translate(-50%, 16px);
+    background: var(--bg-1);
+    border: 1px solid var(--line-strong);
     color: var(--text);
-    padding: 10px 18px;
-    border-radius: 20px;
+    padding: 11px 20px;
+    border-radius: 999px;
     font-size: 14px;
     opacity: 0;
     pointer-events: none;
     transition: all 0.25s ease;
     max-width: 90%;
     text-align: center;
+    box-shadow: var(--shadow);
   }
   #toast.show { opacity: 1; transform: translate(-50%, 0); }
 </style>
@@ -145,25 +314,40 @@
 <body>
 <div id="app">
   <header>
-    <h1>🌙 야근왕</h1>
-    <p>오늘의 문지기를 확인하세요</p>
+    <div class="wordmark"><span class="moon">🌙</span>야근왕</div>
+    <div id="today-date"></div>
   </header>
 
   <div id="tab-today" class="tab-content active">
-    <div id="gatekeeper-card" class="card gatekeeper-card">
-      <div class="pending">불러오는 중...</div>
+    <div id="gatekeeper-card" class="card hero">
+      <div class="empty">불러오는 중...</div>
     </div>
 
     <div class="card">
-      <label for="input-name">이름</label>
-      <input id="input-name" list="staff-names" placeholder="이름을 입력하세요" autocomplete="off">
-      <datalist id="staff-names"></datalist>
+      <label class="field-label" for="input-name">이름</label>
+      <select id="input-name" required>
+        <option value="" disabled selected>이름 선택</option>
+      </select>
 
-      <label for="input-time">예상 퇴근시간</label>
-      <input id="input-time" type="time">
+      <label class="field-label">퇴근시간</label>
+      <div class="chips">
+        <button type="button" class="chip" data-value="17:00">17:00</button>
+        <button type="button" class="chip" data-value="17:30">17:30</button>
+        <button type="button" class="chip" data-value="18:00">18:00</button>
+      </div>
+      <div class="chips">
+        <button type="button" class="chip status" data-value="출장">🧳 출장</button>
+        <button type="button" class="chip status" data-value="휴가">🌴 휴가</button>
+      </div>
 
-      <button class="primary" id="btn-submit">기록하기</button>
-      <div class="hint">같은 이름으로 다시 입력하면 시간이 수정됩니다 (휴가/조퇴 시 활용)</div>
+      <div class="manual-row">
+        <label class="field-label" for="input-time">직접 입력</label>
+        <input id="input-time" type="time">
+      </div>
+
+      <button class="submit-btn" id="btn-submit">기록하기</button>
+      <div class="my-record" id="my-record">내 기록: <span class="val" id="my-record-val"></span></div>
+      <div class="form-hint">같은 이름으로 다시 기록하면 수정됩니다</div>
     </div>
   </div>
 
@@ -183,6 +367,26 @@
 
 <script src="common.js"></script>
 <script>
+const DOW = ['일', '월', '화', '수', '목', '금', '토'];
+let lastUpdatedAt = null;
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+// ── 헤더 날짜 ──
+(function renderHeaderDate() {
+  const d = new Date();
+  document.getElementById('today-date').textContent =
+    `${d.getMonth() + 1}월 ${d.getDate()}일 (${DOW[d.getDay()]})`;
+})();
+
+// ── 탭 ──
 function switchTab(name, btn) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
@@ -191,66 +395,120 @@ function switchTab(name, btn) {
   if (name === 'history') loadHistory();
 }
 
+// ── 이름 목록 ──
 function loadNames() {
   apiGet('names').then(resp => {
-    const datalist = document.getElementById('staff-names');
-    datalist.innerHTML = '';
+    const sel = document.getElementById('input-name');
     (resp.names || []).forEach(n => {
       const opt = document.createElement('option');
       opt.value = n;
-      datalist.appendChild(opt);
+      opt.textContent = n;
+      sel.appendChild(opt);
     });
+    const mine = getMyRecord();
+    if (mine && mine.name) sel.value = mine.name;
   });
+}
+
+// ── 문지기 카드 ──
+function updatedAgoText() {
+  if (!lastUpdatedAt) return '';
+  const sec = Math.floor((Date.now() - lastUpdatedAt) / 1000);
+  if (sec < 10) return '방금 업데이트';
+  if (sec < 60) return `${sec}초 전 업데이트`;
+  return `${Math.floor(sec / 60)}분 전 업데이트`;
 }
 
 function renderGatekeeperCard(resp) {
   const card = document.getElementById('gatekeeper-card');
+  lastUpdatedAt = Date.now();
+  const statusRow = `
+    <div class="hero-status">
+      <span class="live-badge"><span class="live-dot"></span>실시간</span>
+      <span id="updated-ago">${updatedAgoText()}</span>
+    </div>`;
   if (resp.status === 'live') {
-    card.innerHTML = `<div class="crown">👑</div><div class="name">${escapeHtml(resp.gatekeeper)}</div><div class="pending">지금까지 가장 늦게 퇴근하는 사람 (실시간)</div>`;
+    card.innerHTML = statusRow + `
+      <div class="crown">👑</div>
+      <div class="name">${escapeHtml(resp.gatekeeper)}</div>
+      <div class="time-chip">${escapeHtml(resp.leave_time)}</div>
+      <div class="caption">지금 기준, 오늘 가장 늦게 퇴근하는 사람</div>
+      <div class="count">오늘 ${Number(resp.count) || 0}명 등록</div>`;
+  } else if (resp.status === 'all_away') {
+    card.innerHTML = statusRow + `
+      <div class="empty"><span class="big">🌴</span>오늘은 모두 출장/휴가예요<div class="count">오늘 ${Number(resp.count) || 0}명 등록</div></div>`;
   } else {
-    card.innerHTML = `<div class="no-records">오늘은 아직 등록된 기록이 없습니다.</div>`;
+    card.innerHTML = statusRow + `
+      <div class="empty"><span class="big">🌙</span>아직 등록된 기록이 없어요<br>첫 기록의 주인공이 되어보세요</div>`;
   }
 }
 
 function loadToday() {
-  apiGet('today').then(renderGatekeeperCard);
+  apiGet('today').then(renderGatekeeperCard).catch(() => {});
 }
 
-// 실시간으로 보이도록 20초마다 자동 갱신 (오늘 탭이 보일 때만)
+// 20초마다 자동 갱신 + 5초마다 "n초 전" 라벨 갱신
 setInterval(() => {
-  if (document.getElementById('tab-today').classList.contains('active')) {
-    loadToday();
-  }
+  if (document.getElementById('tab-today').classList.contains('active')) loadToday();
 }, 20000);
+setInterval(() => {
+  const el = document.getElementById('updated-ago');
+  if (el) el.textContent = updatedAgoText();
+}, 5000);
 
-function loadHistory() {
-  apiGet('history').then(resp => {
-    const list = document.getElementById('history-list');
-    const items = resp.history || [];
-    if (items.length === 0) {
-      list.innerHTML = '<div class="empty">아직 기록된 문지기가 없습니다.</div>';
+// ── 퇴근시간 선택 (칩 ↔ 직접입력 상호 배타) ──
+let selectedChip = null;
+document.querySelectorAll('.chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    if (selectedChip === chip) {
+      chip.classList.remove('selected');
+      selectedChip = null;
       return;
     }
-    list.innerHTML = items.map(h =>
-      `<li><span class="date">${escapeHtml(h.date)}</span><span class="name">${escapeHtml(h.gatekeeper)}</span></li>`
-    ).join('');
+    document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+    chip.classList.add('selected');
+    selectedChip = chip;
+    document.getElementById('input-time').value = '';
   });
+});
+document.getElementById('input-time').addEventListener('input', () => {
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('selected'));
+  selectedChip = null;
+});
+
+// ── 내 기록 (본인 기기에만 저장) ──
+function getMyRecord() {
+  try {
+    const raw = localStorage.getItem('ngk_my_record');
+    if (!raw) return null;
+    const rec = JSON.parse(raw);
+    return rec.date === todayStr() ? rec : null;
+  } catch (e) { return null; }
 }
 
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function renderMyRecord() {
+  const rec = getMyRecord();
+  const box = document.getElementById('my-record');
+  if (!rec) { box.style.display = 'none'; return; }
+  document.getElementById('my-record-val').textContent = `${rec.name} · ${rec.leave_time}`;
+  box.style.display = 'block';
 }
 
+// ── 기록하기 ──
 document.getElementById('btn-submit').addEventListener('click', () => {
-  const name = document.getElementById('input-name').value.trim();
-  const leaveTime = document.getElementById('input-time').value;
-  if (!name || !leaveTime) {
-    showToast('이름과 퇴근시간을 모두 입력해 주세요.');
-    return;
-  }
+  const name = document.getElementById('input-name').value;
+  const manual = document.getElementById('input-time').value;
+  const leaveTime = selectedChip ? selectedChip.dataset.value : manual;
+  if (!name) { showToast('이름을 선택해 주세요.'); return; }
+  if (!leaveTime) { showToast('퇴근시간을 선택하거나 입력해 주세요.'); return; }
+
   apiPost('submit', { name, leave_time: leaveTime }).then(resp => {
     if (resp.result === 'OK') {
       showToast('기록되었습니다.');
+      try {
+        localStorage.setItem('ngk_my_record', JSON.stringify({ date: todayStr(), name, leave_time: leaveTime }));
+      } catch (e) {}
+      renderMyRecord();
       loadToday();
     } else if (resp.result === 'NAME_NOT_FOUND') {
       showToast('명단에 없는 이름입니다. 관리자에게 문의하세요.');
@@ -262,8 +520,26 @@ document.getElementById('btn-submit').addEventListener('click', () => {
   });
 });
 
+// ── 역대 문지기 ──
+function loadHistory() {
+  apiGet('history').then(resp => {
+    const list = document.getElementById('history-list');
+    const items = resp.history || [];
+    if (items.length === 0) {
+      list.innerHTML = '<div class="empty-list">아직 기록된 문지기가 없어요</div>';
+      return;
+    }
+    list.innerHTML = items.map(h => {
+      const d = new Date(h.date + 'T00:00:00');
+      const dow = isNaN(d) ? '' : ` <span class="dow">(${DOW[d.getDay()]})</span>`;
+      return `<li><span class="date">${escapeHtml(h.date)}${dow}</span><span class="name">${escapeHtml(h.gatekeeper)}</span></li>`;
+    }).join('');
+  });
+}
+
 loadNames();
 loadToday();
+renderMyRecord();
 </script>
 </body>
 </html>

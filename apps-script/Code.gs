@@ -1,6 +1,8 @@
 // ===== 상수 =====
 const SHEET_NAMES = { STAFF: '직원명단', RECORDS: '기록', GATEKEEPER: '문지기확정' };
 const TIMEZONE = 'Asia/Seoul';
+// 시간 대신 허용되는 특수 상태 — 이 값으로 등록한 사람은 문지기 후보에서 제외된다
+const SPECIAL_STATUSES = ['출장', '휴가'];
 
 // ===== 라우팅 =====
 function doGet(e) {
@@ -52,6 +54,19 @@ function normalizeDateStr_(v) {
 function parseTimestamp_(v) {
   if (Object.prototype.toString.call(v) === '[object Date]') return v;
   return new Date(v);
+}
+
+// leave_time 셀이 Sheets에 의해 시간 값(Date)으로 자동변환됐어도 'HH:mm' 문자열로 통일
+function normalizeTimeStr_(v) {
+  if (Object.prototype.toString.call(v) === '[object Date]') {
+    return Utilities.formatDate(v, TIMEZONE, 'HH:mm');
+  }
+  return String(v);
+}
+
+// 'HH:MM' 형식(문지기 후보 자격)인지 판별 — 출장/휴가 등 특수 상태는 false
+function isTimeValue_(v) {
+  return /^([01]\d|2[0-3]):[0-5]\d$/.test(String(v));
 }
 
 function boolActive_(v) {
@@ -114,8 +129,8 @@ function upsertRecord_(recordsSheet, dateStr, name, leaveTime) {
 function submit_(data) {
   return withLock_(function () {
     const name = data.name;
-    const leaveTime = data.leave_time;
-    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(leaveTime))) {
+    const leaveTime = String(data.leave_time);
+    if (!isTimeValue_(leaveTime) && SPECIAL_STATUSES.indexOf(leaveTime) === -1) {
       return jsonOutput_({ result: 'INVALID_TIME_FORMAT' });
     }
     const ss = SpreadsheetApp.getActiveSpreadsheet();
@@ -139,7 +154,7 @@ function getRecordsForDate_(recordsSheet, dateStr) {
     if (normalizeDateStr_(values[i][0]) !== dateStr) continue;
     out.push({
       name: values[i][1],
-      leave_time: values[i][2],
+      leave_time: normalizeTimeStr_(values[i][2]),
       created_at: values[i][3],
       updated_at: values[i][4]
     });
@@ -205,9 +220,9 @@ function finalizePastDates_() {
     }
     Object.keys(pastDates).forEach(function (dateStr) {
       if (findGatekeeperRowIndex_(gatekeeperSheet, dateStr) !== -1) return;
-      const records = getRecordsForDate_(recordsSheet, dateStr);
-      if (records.length === 0) return;
-      const winner = pickGatekeeper_(records);
+      const candidates = getRecordsForDate_(recordsSheet, dateStr).filter(function (r) { return isTimeValue_(r.leave_time); });
+      if (candidates.length === 0) return; // 전원 출장/휴가였던 날은 문지기 없음
+      const winner = pickGatekeeper_(candidates);
       gatekeeperSheet.appendRow([dateStr, winner.name, new Date().toISOString(), 0, '마감 시 자동 기록']);
     });
     return jsonOutput_({ result: 'OK' });
@@ -215,13 +230,18 @@ function finalizePastDates_() {
 }
 
 // 오늘 지금까지의 1등을 실시간으로 계산해 반환 (쓰기 없음, 락 불필요)
+// leave_time(1등의 시간)과 count(오늘 등록 인원)를 함께 공개하는 것은 제품 결정 사항
 function today_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const todayStr = Utilities.formatDate(new Date(), TIMEZONE, 'yyyy-MM-dd');
   const records = getRecordsForDate_(getSheet_(ss, SHEET_NAMES.RECORDS), todayStr);
   if (records.length === 0) return jsonOutput_({ status: 'no_records' });
-  const winner = pickGatekeeper_(records);
-  return jsonOutput_({ status: 'live', gatekeeper: winner.name });
+  const candidates = records.filter(function (r) { return isTimeValue_(r.leave_time); });
+  if (candidates.length === 0) {
+    return jsonOutput_({ status: 'all_away', count: records.length });
+  }
+  const winner = pickGatekeeper_(candidates);
+  return jsonOutput_({ status: 'live', gatekeeper: winner.name, leave_time: winner.leave_time, count: records.length });
 }
 
 // ===== 관리자 API =====
